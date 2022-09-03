@@ -1,8 +1,25 @@
-from flask import Flask, redirect, url_for, request, render_template
+from flask import Flask, redirect, url_for, request, render_template, json
 import datetime
 import pandas as pd
 app = Flask(__name__)
  
+
+def get_cdf(days,  df):
+    """
+    input: study permit application date and dataframe with past PPR's data
+    output: data to plot cumulative probability distribution
+    """
+    dates = []
+    probs = []
+    l = len(df)
+    present_date = datetime.datetime.today().date()
+    for i in range(1,11):
+        days+=1
+        l1 = len(df[df['processing_days']<=days])
+        probs.append(round(l1/l,2))
+        date_ = present_date + datetime.timedelta(days=i)
+        dates.append( date_.strftime('%d %B %Y'))
+    return dates, probs
 
 def calc(date):
     """
@@ -15,6 +32,7 @@ def calc(date):
     date = pd.to_datetime(date)
     days = datetime.datetime.today() - date
     days = days.days
+    dates, probs = get_cdf(days,  df)
     prob = len(df[df['processing_days']<=days])/len(df)
     if days > med:
         med = df[df['processing_days']>=days]['processing_days'].median()
@@ -22,7 +40,7 @@ def calc(date):
     result_date = result_date.strftime('%d %B %Y')
     if prob > 0.5:
         result_date = 'the next working day of IRCC'
-    return result_date, prob
+    return result_date, round(100*prob,2), dates, probs
 
  
 @app.route('/', methods=['POST', 'GET'])
@@ -34,32 +52,25 @@ def fun():
 def success():
     if request.method == 'POST':
         date = request.form['date']
-        prob = request.form['prob']
+        result_date, prob, dates, probs = calc(date)
     else:
         date = request.args.get('date')
-        prob = request.args.get('prob')
-    assurance = ''
-    if(float(prob)<0.05):
-        assurance = "<h1>It is just a dumb predictor don't take it seriously, you will get your PPR on time</h1>"
-    output = '''<div style="text-align:center"><h1>You have a %.2f percent chance of getting PPR on the next working day of IRCC</h1>
-            </br>
-            <h1>You will most likely get your VISA before %s there is a 50 percent chance of that</h1>
-            </br>
-            '''+assurance+'''
-            </div>'''
-    return  output% (100*float(prob), date)
+        result_date, prob, dates, probs = calc(date)
+    return render_template('success.html', prob=prob, dates=dates, probs=probs)
  
  
 @app.route('/index', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
         date = request.form['date']
-        result_date, prob = calc(date)
-        return redirect(url_for('success', date=result_date, prob=prob))
+        result_date, prob, dates, probs = calc(date)
+        return render_template('success.html', prob=prob, dates=dates, probs=probs)
+        #return redirect(url_for('success', date=date))
     else:
         date = request.args.get('date')
-        result_date, prob = calc(date)
-        return redirect(url_for('success', date=result_date, prob=prob))
+        result_date, prob, dates, probs = calc(date)
+        return render_template('success.html', prob=prob, dates=dates, probs=probs)
+        #return redirect(url_for('success', date=date))
  
  
 if __name__ == '__main__':

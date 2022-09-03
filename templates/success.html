@@ -1,0 +1,74 @@
+<html>
+	<head>
+		<script src="https://code.highcharts.com/highcharts.js"></script>
+		<script src="https://code.highcharts.com/modules/exporting.js"></script>
+		<script src="https://code.highcharts.com/modules/export-data.js"></script>
+		<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+	</head>
+   <body>     
+      <form action = "/success" method = "post">
+          
+<div style="text-align:center">
+
+	
+    <h2>You have a {{prob}} percent chance of getting PPR today (if today is a working day for IRCC)</h2>
+            </br>
+            </br>
+	<figure class="highcharts-figure">
+    <div id="container"></div>
+    
+</figure>
+		
+            
+</div>
+      </form>     
+   </body>
+   <script>
+   debugger
+		var dates = {{dates|tojson}};
+		var probs = {{probs|tojson}};
+		Highcharts.chart('container', {
+			chart: {
+				type: 'area'
+			},
+			
+			title: {
+				text: 'PPR probability'
+			},
+			subtitle: {
+				text: 'The graph shows the probability of you receiving your PPR before mid-night on any particular date'
+			},
+			xAxis: {
+					categories: dates,
+				allowDecimals: false,
+				labels: {
+					formatter: function () {
+						return this.value; // clean, unformatted number for year
+					}
+				},
+			},
+			yAxis: {
+				title: {
+					text: 'Probability of PPR'
+				},
+				labels: {
+					formatter: function () {
+						return this.value;
+					}
+				}
+			},
+			tooltip: {
+				pointFormat: '{series.name} of PPR is <b>{point.y}</b><br/>before mid-night on this day'
+			},
+		  
+			series: [{
+				name: 'Probability',
+				data: probs
+			}
+			]
+		});
+		
+
+   </script>
+</html>
